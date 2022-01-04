@@ -12,6 +12,8 @@ Version: 1.0.0
 Author URI: 
 */
 
+require_once 'includes/metaboxes.php';
+
 // Add Course section to the product page.
 
 add_filter('woocommerce_product_data_tabs', function($tabs) {
