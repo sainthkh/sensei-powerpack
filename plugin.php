@@ -13,6 +13,7 @@ Author URI:
 */
 
 require_once 'includes/metaboxes.php';
+require_once 'includes/woocommerce.php';
 
 // Add Course section to the product page.
 
