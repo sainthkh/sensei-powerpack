@@ -1,8 +1,8 @@
 <?php
 
+// redirection
+
 add_action('template_redirect', 'spp_restrict_content');
-add_filter('sensei_can_user_view_lesson', 'spp_can_user_view_lesson', 10, 3);
-add_action('wp_head', 'spp_remove_actions');
 
 function spp_restrict_content() {
     $post = get_post();
@@ -46,12 +46,91 @@ function spp_restrict_content() {
     }
 }
 
+// show content
+
+add_filter('sensei_can_user_view_lesson', 'spp_can_user_view_lesson', 10, 3);
+
 function spp_can_user_view_lesson($can_user_view_lesson, $lesson_id, $user_id) {
     // restriction is handled with spp_restrict_content()
     // so, all we need to do is show the content.
     return true;
 }
 
+// remove signup message
+
+add_action('wp_head', 'spp_remove_actions');
+
 function spp_remove_actions() {
     remove_action('sensei_single_lesson_content_inside_before', array( 'Sensei_Lesson', 'course_signup_link' ), 30);
+}
+
+// editor meta box
+
+add_action( 'add_meta_boxes', 'spp_add_meta_boxes' );
+add_action( 'save_post', 'spp_lesson_save_lmeta_boxes' );
+add_action( 'admin_head', 'spp_lesson_remove_meta_boxes' );
+
+function spp_add_meta_boxes( $post_type ) {
+    add_meta_box(
+        'spp_lesson_access_type',
+        __( 'Lesson Access Type', 'sensei-powerpack' ),
+        'spp_lesson_access_type_meta_box_content',
+        'lesson',
+        'side',
+        'low'
+    );
+}
+
+function spp_lesson_access_type_meta_box_content($post) {
+    wp_nonce_field( 'spp_lesson_metabox', 'spp_lesson_metabox_nonce' );
+ 
+    $value = get_post_meta( $post->ID, 'lesson_access_type', true );
+
+    ?>
+    <label for="lesson_access_type">Choose a lesson access type for this lesson:</label>
+    <select name="lesson_access_type"> <?php
+        $options = array(
+            'free' => __( 'Free', 'sensei-powerpack' ),
+            'public' => __( 'Public', 'sensei-powerpack' ),
+            'paid' => __( 'Paid', 'sensei-powerpack' ),
+        );
+
+        foreach($options as $key => $label) {
+            $selected = ($value == $key) ? 'selected' : '';
+            echo "<option value='$key' $selected>$label</option>";
+        }
+    ?></select>
+    <?php
+}
+
+function spp_lesson_save_lmeta_boxes( $post_id ) {
+    if (isset($_POST['post_type']) && $_POST['post_type'] !== 'lesson') {
+        return $post_id;
+    }
+
+    // Check nonce
+
+    if ( ! isset( $_POST['spp_lesson_metabox_nonce'] ) ) {
+        return $post_id;
+    }
+
+    $nonce = $_POST['spp_lesson_metabox_nonce'];
+
+    if ( ! wp_verify_nonce( $nonce, 'spp_lesson_metabox' ) ) {
+        return $post_id;
+    }
+
+    // Check the user's permissions.
+    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+        return $post_id;
+    }
+
+    $mydata = sanitize_text_field( $_POST['lesson_access_type'] );
+ 
+    // Update the meta field.
+    update_post_meta( $post_id, 'lesson_access_type', $mydata );
+}
+
+function spp_lesson_remove_meta_boxes() {
+    remove_meta_box( 'lesson-preview', 'lesson', 'side' );
 }

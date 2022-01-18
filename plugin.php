@@ -12,7 +12,6 @@ Version: 1.0.0
 Author URI: 
 */
 
-require_once 'includes/metaboxes.php';
 require_once 'includes/woocommerce.php';
 require_once 'includes/restrict-content.php';
 
