@@ -2,6 +2,7 @@
 
 add_action( 'add_meta_boxes', 'spp_add_meta_boxes' );
 add_action( 'save_post', 'spp_lesson_save_lmeta_boxes' );
+add_action( 'admin_head', 'spp_lesson_remove_meta_boxes' );
 
 function spp_add_meta_boxes( $post_type ) {
     add_meta_box(
@@ -62,4 +63,8 @@ function spp_lesson_save_lmeta_boxes( $post_id ) {
  
     // Update the meta field.
     update_post_meta( $post_id, 'lesson_access_type', $mydata );
+}
+
+function spp_lesson_remove_meta_boxes() {
+    remove_meta_box( 'lesson-preview', 'lesson', 'side' );
 }
