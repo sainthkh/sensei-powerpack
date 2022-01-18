@@ -3,6 +3,11 @@
 add_action( 'woocommerce_payment_complete', 'spp_order_completed' );
 function spp_order_completed( $order_id ) {
 	$order = wc_get_order( $order_id );
+
+    if(!$order->has_status('completed')) {
+        return;
+    }
+
 	$user_id = $order->get_user_id();
 
     $order_items = $order->get_items();
