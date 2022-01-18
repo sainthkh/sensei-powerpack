@@ -81,7 +81,15 @@ function spp_add_meta_boxes( $post_type ) {
     );
 }
 
+$spp_lesson_options = array(
+    'free' => __( 'Free', 'sensei-powerpack' ),
+    'public' => __( 'Public', 'sensei-powerpack' ),
+    'paid' => __( 'Paid', 'sensei-powerpack' ),
+);
+
 function spp_lesson_access_type_meta_box_content($post) {
+    global $spp_lesson_options;
+
     wp_nonce_field( 'spp_lesson_metabox', 'spp_lesson_metabox_nonce' );
  
     $value = get_post_meta( $post->ID, 'lesson_access_type', true );
@@ -89,13 +97,7 @@ function spp_lesson_access_type_meta_box_content($post) {
     ?>
     <label for="lesson_access_type">Choose a lesson access type for this lesson:</label>
     <select name="lesson_access_type"> <?php
-        $options = array(
-            'free' => __( 'Free', 'sensei-powerpack' ),
-            'public' => __( 'Public', 'sensei-powerpack' ),
-            'paid' => __( 'Paid', 'sensei-powerpack' ),
-        );
-
-        foreach($options as $key => $label) {
+        foreach($spp_lesson_options as $key => $label) {
             $selected = ($value == $key) ? 'selected' : '';
             echo "<option value='$key' $selected>$label</option>";
         }
@@ -133,4 +135,29 @@ function spp_lesson_save_lmeta_boxes( $post_id ) {
 
 function spp_lesson_remove_meta_boxes() {
     remove_meta_box( 'lesson-preview', 'lesson', 'side' );
+}
+
+// lesson post table columns
+
+add_filter( 'manage_lesson_posts_columns', 'spp_lesson_posts_columns_list' );
+add_action( 'manage_lesson_posts_custom_column' , 'spp_lesson_post_column_value', 10, 2 );
+
+function spp_lesson_posts_columns_list($columns) {
+    $columns['access_type'] = __('Access Type', 'sensei-powerpack');
+     
+    return $columns;
+}
+
+function spp_lesson_post_column_value( $column, $post_id ) {
+    global $spp_lesson_options;
+
+    if ($column === 'access_type') {
+        $access_type = get_post_meta($post_id, 'lesson_access_type', true);
+
+        if (empty($access_type)) {
+            $access_type = 'free';
+        }
+
+        echo $spp_lesson_options[$access_type];
+    }
 }
