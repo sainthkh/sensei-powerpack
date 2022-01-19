@@ -10,11 +10,16 @@ function spp_restrict_content() {
     if($post->post_type === 'lesson') {
         $access_type = get_post_meta( $post->ID, 'lesson_access_type', true );
 
+        $login_page_id = get_option('spp_login_page', NULL);
+        $login_url = $login_page_id 
+            ? get_permalink($login_page_id)
+            : home_url();
+
         if (empty($access_type) || $access_type === 'free') {
             if (is_user_logged_in()) {
                 return;
             } else {
-                wp_redirect(home_url());
+                wp_redirect($login_url);
                 return;
             }
         }
@@ -39,7 +44,7 @@ function spp_restrict_content() {
                     }
                 }
             } else {
-                wp_redirect(home_url());
+                wp_redirect($login_url);
                 return;
             }
         }
@@ -159,5 +164,33 @@ function spp_lesson_post_column_value( $column, $post_id ) {
         }
 
         echo $spp_lesson_options[$access_type];
+    }
+}
+
+// Login page setting
+
+add_filter('sensei_settings_fields', 'spp_login_page_setting');
+add_action( 'update_option_sensei-settings', 'spp_update_login_page_setting', 10, 2 );
+
+function spp_login_page_setting($fields) {
+    $fields['login_page'] = array(
+        'name'        => __( 'Login Page', 'sensei-powerpack' ),
+        'description' => __( 'The page to login as a user', 'sensei-powerpack' ),
+        'type'        => 'select',
+        'default'     => get_option( 'spp_login_page', 0 ),
+        'section'     => 'default-settings',
+        'required'    => 0,
+        // Get page list.
+        'options'     => $fields['course_page']['options'],
+    );
+
+    return $fields;
+}
+
+// Options are saved in `sensei-settings` option.
+// We're retrieving `login_page` here to save it as a separate option.
+function spp_update_login_page_setting($old_value, $new_value) {
+    if (isset($new_value['login_page'])) {
+        update_option('spp_login_page', $new_value['login_page']);
     }
 }
