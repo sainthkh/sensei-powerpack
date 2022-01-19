@@ -39,7 +39,13 @@ function spp_restrict_content() {
                     if ($course_access === 'yes') {
                         return;
                     } else {
-                        wp_redirect(home_url());
+                        $landing_page_id = get_post_meta( $post->ID, 'course_landing_page', true);
+
+                        $landing_page_url = $landing_page_id 
+                            ? get_permalink($landing_page_id)
+                            : home_url();
+
+                        wp_redirect( $landing_page_url );
                         return;
                     }
                 }
@@ -69,11 +75,14 @@ function spp_remove_actions() {
     remove_action('sensei_single_lesson_content_inside_before', array( 'Sensei_Lesson', 'course_signup_link' ), 30);
 }
 
-// editor meta box
+// editor meta boxes
 
 add_action( 'add_meta_boxes', 'spp_add_meta_boxes' );
-add_action( 'save_post', 'spp_lesson_save_lmeta_boxes' );
+
+add_action( 'save_post', 'spp_lesson_save_meta_boxes' );
 add_action( 'admin_head', 'spp_lesson_remove_meta_boxes' );
+
+add_action( 'save_post', 'spp_course_save_meta_boxes' );
 
 function spp_add_meta_boxes( $post_type ) {
     add_meta_box(
@@ -84,7 +93,18 @@ function spp_add_meta_boxes( $post_type ) {
         'side',
         'low'
     );
+
+    add_meta_box(
+        'spp_course_landing_page',
+        __( 'Course Payment Landing Page', 'sensei-powerpack' ),
+        'spp_course_landing_page_meta_box_content',
+        'course',
+        'side',
+        'low'
+    );
 }
+
+// lesson meta box
 
 $spp_lesson_options = array(
     'free' => __( 'Free', 'sensei-powerpack' ),
@@ -100,7 +120,6 @@ function spp_lesson_access_type_meta_box_content($post) {
     $value = get_post_meta( $post->ID, 'lesson_access_type', true );
 
     ?>
-    <label for="lesson_access_type">Choose a lesson access type for this lesson:</label>
     <select name="lesson_access_type"> <?php
         foreach($spp_lesson_options as $key => $label) {
             $selected = ($value == $key) ? 'selected' : '';
@@ -110,7 +129,7 @@ function spp_lesson_access_type_meta_box_content($post) {
     <?php
 }
 
-function spp_lesson_save_lmeta_boxes( $post_id ) {
+function spp_lesson_save_meta_boxes( $post_id ) {
     if (isset($_POST['post_type']) && $_POST['post_type'] !== 'lesson') {
         return $post_id;
     }
@@ -140,6 +159,52 @@ function spp_lesson_save_lmeta_boxes( $post_id ) {
 
 function spp_lesson_remove_meta_boxes() {
     remove_meta_box( 'lesson-preview', 'lesson', 'side' );
+}
+
+// course meta box
+
+function spp_course_landing_page_meta_box_content($post) {
+    wp_nonce_field( 'spp_course_metabox', 'spp_course_metabox_nonce' );
+ 
+    $value = get_post_meta( $post->ID, 'course_landing_page', true );
+
+    ?>
+    <select name="course_landing_page"> <?php
+        $pages = get_pages(); 
+        foreach ( $pages as $page ) {
+            $selected = ($value == $page->ID) ? 'selected' : '';
+            echo "<option value='$page->ID' $selected>$page->post_title</option>";
+        }
+    ?></select>
+    <?php
+}
+
+function spp_course_save_meta_boxes( $post_id ) {
+    if (isset($_POST['post_type']) && $_POST['post_type'] !== 'course') {
+        return $post_id;
+    }
+
+    // Check nonce
+
+    if ( ! isset( $_POST['spp_course_metabox_nonce'] ) ) {
+        return $post_id;
+    }
+
+    $nonce = $_POST['spp_course_metabox_nonce'];
+
+    if ( ! wp_verify_nonce( $nonce, 'spp_course_metabox' ) ) {
+        return $post_id;
+    }
+
+    // Check the user's permissions.
+    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+        return $post_id;
+    }
+
+    $mydata = sanitize_text_field( $_POST['course_landing_page'] );
+ 
+    // Update the meta field.
+    update_post_meta( $post_id, 'course_landing_page', $mydata );
 }
 
 // lesson post table columns
